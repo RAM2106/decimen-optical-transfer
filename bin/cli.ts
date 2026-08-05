@@ -119,8 +119,9 @@ async function runSend(targetArg: string, options: Record<string, string>) {
     target = picked;
   }
 
-  const fps = Number(options.fps) || 30;
-  const blockLen = Number(options.bytes) || DEFAULT_CLI_BLOCK_BYTES;
+  const isTurbo = options.turbo === "true" || options.turbo === "1" || options.turbo === true;
+  const fps = Number(options.fps) || (isTurbo ? 60 : 30);
+  const blockLen = Number(options.bytes) || (isTurbo ? 1465 : DEFAULT_CLI_BLOCK_BYTES);
   const sessionId = (Math.random() * 0xffff) | 0;
 
   let packed;
