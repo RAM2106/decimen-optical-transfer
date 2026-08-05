@@ -89,6 +89,8 @@ async function runShare(customUrl?: string) {
   console.log(`🔗 URL: ${targetUrl}\n`);
 }
 
+const DEFAULT_CLI_BLOCK_BYTES = 256;
+
 async function runSend(targetArg: string, options: Record<string, string>) {
   let target = targetArg;
   if (!target) {
@@ -102,7 +104,7 @@ async function runSend(targetArg: string, options: Record<string, string>) {
   }
 
   const fps = Number(options.fps) || DEFAULT_TX_FPS;
-  const blockLen = Number(options.bytes) || DEFAULT_FRAME_BYTES;
+  const blockLen = Number(options.bytes) || DEFAULT_CLI_BLOCK_BYTES;
   const sessionId = (Math.random() * 0xffff) | 0;
 
   let packed;
@@ -154,11 +156,15 @@ async function runSend(targetArg: string, options: Record<string, string>) {
 
       // Encode framePayload to Base64 string for QR module rendering
       const base64Str = Buffer.from(framePayload).toString("base64");
-      const qrAscii = await QRCode.toString(base64Str, { type: "terminal", small: true });
+      const qrAscii = await QRCode.toString(base64Str, {
+        type: "terminal",
+        small: true,
+        errorCorrectionLevel: "L",
+      });
 
-      // Clear screen line & move up
-      process.stdout.write("\x1Bc");
-      console.log(`📡 RAM21 Optical Stream | Frame #${seq} | K=${encoder.k} blocks`);
+      // Clear screen and move cursor to top-left (flicker-free rendering)
+      process.stdout.write("\x1B[H\x1B[2J");
+      console.log(`📡 RAM21 Optical Stream | Frame #${seq} | K=${encoder.k} blocks | ${filename}`);
       console.log(qrAscii);
       seq++;
     } catch (err) {
