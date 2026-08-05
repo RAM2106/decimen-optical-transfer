@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { execSync } from "node:child_process";
 import QRCode from "qrcode";
-import { packFile, fnv1a } from "../shared/protocol.js";
+import { packFile, packFrame, fnv1a, type FrameHeader } from "../shared/protocol.js";
 import { LTEncoder } from "../shared/fountain.js";
 import { DEFAULT_FRAME_BYTES, DEFAULT_TX_FPS } from "../shared/send-settings.js";
 
@@ -138,29 +138,25 @@ async function runSend(targetArg: string, options: Record<string, string>) {
   setInterval(async () => {
     try {
       const block = encoder.encode(seq);
-      // Build 20-byte binary header
-      const header = new Uint8Array(20);
-      const view = new DataView(header.buffer);
-      view.setUint8(0, 0xd1);
-      view.setUint8(1, 0x0c);
-      view.setUint16(2, sessionId, true);
-      view.setUint32(4, seq, true);
-      view.setUint16(8, encoder.k, true);
-      view.setUint16(10, blockLen, true);
-      view.setUint32(12, packed.container.length, true);
-      view.setUint32(16, fnv1a(packed.container), true);
+      const header: FrameHeader = {
+        sessionId,
+        seq,
+        k: encoder.k,
+        blockLen,
+        totalLen: packed.container.length,
+        payloadFnv: fnv1a(packed.container),
+      };
+      const framePayload = packFrame(header, block);
 
-      const framePayload = new Uint8Array(20 + block.length);
-      framePayload.set(header, 0);
-      framePayload.set(block, 20);
-
-      // Encode framePayload to Base64 string for QR module rendering
-      const base64Str = Buffer.from(framePayload).toString("base64");
-      const qrAscii = await QRCode.toString(base64Str, {
-        type: "terminal",
-        small: true,
-        errorCorrectionLevel: "L",
-      });
+      // Render raw binary byte segment to QR code for 100% receiver protocol compatibility
+      const qrAscii = await QRCode.toString(
+        [{ data: framePayload, mode: "byte" }] as unknown as QRCode.QRCodeSegment[],
+        {
+          type: "terminal",
+          small: true,
+          errorCorrectionLevel: "L",
+        }
+      );
 
       // Clear screen and move cursor to top-left (flicker-free rendering)
       process.stdout.write("\x1B[H\x1B[2J");
