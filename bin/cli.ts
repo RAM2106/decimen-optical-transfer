@@ -16,12 +16,14 @@ function showHelp() {
 
 Usage:
   npx ram21-transfer send <file_path|text> [--fps <number>] [--bytes <number>]
+  npx ram21-transfer share [url]
   npx ram21-transfer receive [--out <output_dir>]
   npx ram21-transfer --help
 
 Examples:
   npx ram21-transfer send ./document.pdf --fps 24 --bytes 1465
   npx ram21-transfer send "Hello world!"
+  npx ram21-transfer share
   npx ram21-transfer receive --out ./downloads
 `);
 }
@@ -36,6 +38,16 @@ function parseOptions(argsList: string[]) {
     }
   }
   return options;
+}
+
+async function runShare(customUrl?: string) {
+  const targetUrl = customUrl || "https://ram2106.github.io/decimen-optical-transfer/receive/";
+  console.log(`\n📱 RAM21 Receiver Share Code`);
+  console.log(`Point any mobile phone camera at this QR code to open the web receiver app:\n`);
+  
+  const qrAscii = await QRCode.toString(targetUrl, { type: "terminal", small: true });
+  console.log(qrAscii);
+  console.log(`🔗 URL: ${targetUrl}\n`);
 }
 
 async function runSend(target: string, options: Record<string, string>) {
@@ -120,6 +132,9 @@ async function main() {
     const target = args[1];
     const opts = parseOptions(args.slice(2));
     await runSend(target, opts);
+  } else if (command === "share") {
+    const customUrl = args[1];
+    await runShare(customUrl);
   } else if (command === "receive") {
     console.log("📷 RAM21 CLI Receiver mode requires a connected camera stream.");
     console.log("👉 Tip: For mobile phone scanning, open https://localhost:5180/receive/ or use the mobile PWA app.");
