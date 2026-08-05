@@ -105,7 +105,7 @@ async function runShare(customUrl?: string) {
   console.log(`🔗 URL: ${targetUrl}\n`);
 }
 
-const DEFAULT_CLI_BLOCK_BYTES = 1465;
+const DEFAULT_CLI_BLOCK_BYTES = 512;
 
 async function runSend(targetArg: string, options: Record<string, string>) {
   let target = targetArg;
@@ -119,7 +119,7 @@ async function runSend(targetArg: string, options: Record<string, string>) {
     target = picked;
   }
 
-  const fps = Number(options.fps) || 60;
+  const fps = Number(options.fps) || 30;
   const blockLen = Number(options.bytes) || DEFAULT_CLI_BLOCK_BYTES;
   const sessionId = (Math.random() * 0xffff) | 0;
 
