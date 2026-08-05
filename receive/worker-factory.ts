@@ -6,5 +6,10 @@
 // a Blob at module scope, so Rollup cannot prove it side-effect-free and keeps
 // its ~45 KB of base64 even when the branch is provably dead.
 export function createDecodeWorker(): Worker {
-  return new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
+  try {
+    return new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
+  } catch {
+    const workerUrl = new URL("./worker.ts", import.meta.url).href;
+    return new Worker(workerUrl);
+  }
 }

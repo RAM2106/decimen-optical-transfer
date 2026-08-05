@@ -111,10 +111,16 @@ const pool = new DecodeWorkerPool(createDecodeWorker, (bytes) => onDecoded(bytes
 const captureTimes: number[] = [];
 const decodeTimes: number[] = [];
 
-startBtn.addEventListener("click", (e) => {
-  e.preventDefault();
-  void start();
-});
+if (startBtn) {
+  startBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    void start();
+  });
+  startBtn.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    void start();
+  }, { passive: false });
+}
 
 // The header nav markup is shared verbatim between both tool pages; each page
 // marks its own link. Optional because the standalone build swaps the nav for
