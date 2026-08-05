@@ -110,7 +110,11 @@ const noSignal = new NoSignalHintTimer(NO_SIGNAL_FIRST_MS, NO_SIGNAL_DISMISSED_M
 const pool = new DecodeWorkerPool(createDecodeWorker, (bytes) => onDecoded(bytes));
 const captureTimes: number[] = [];
 const decodeTimes: number[] = [];
-startBtn.onclick = () => void start();
+
+startBtn.addEventListener("click", (e) => {
+  e.preventDefault();
+  void start();
+});
 
 // The header nav markup is shared verbatim between both tool pages; each page
 // marks its own link. Optional because the standalone build swaps the nav for
