@@ -156,10 +156,16 @@ async function runSend(targetArg: string, options: Record<string, string>) {
       if (maxFrames > 0 && seq >= maxFrames) {
         clearInterval(timer);
         process.stdout.write("\x1B[H\x1B[2J");
-        console.log(`\n✅ RAM21 Optical Stream Complete!`);
+        console.log(`\n✅ RAM21 Optical Stream Batch Complete!`);
         console.log(`📦 Transmitted: ${filename} (${(packed.container.length / 1024).toFixed(1)} KB)`);
         console.log(`🎉 Total Frames Sent: ${seq} (${(seq / encoder.k).toFixed(1)}x fountain coverage)\n`);
-        process.exit(0);
+        console.log(`👉 Didn't catch it on phone? Press [ENTER] to stream another batch, or [Ctrl+C] to exit.`);
+        
+        process.stdin.resume();
+        process.stdin.once("data", () => {
+          runSend(targetArg, options);
+        });
+        return;
       }
 
       const block = encoder.encode(seq);
