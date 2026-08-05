@@ -1369,3 +1369,16 @@ details.settings input[type="range"] {
     max-width: 100%;
   }
 }
+
+.camera-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.torch-button {
+  padding: 14px 20px;
+  font-size: 15px;
+}

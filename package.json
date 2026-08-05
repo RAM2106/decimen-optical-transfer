@@ -1,11 +1,14 @@
 {
-  "name": "decimen-optical-transfer",
-  "private": true,
+  "name": "ram21",
   "version": "0.3.0",
   "license": "MIT",
-  "description": "Offline file and text transfer using fountain-coded animated QR codes — screen to camera, no network.",
+  "description": "Offline file and text transfer using fountain-coded animated QR codes — RAM21 Optical Transfer.",
   "type": "module",
+  "bin": {
+    "ram21": "./bin/cli.js"
+  },
   "scripts": {
+    "ram21": "tsx ./bin/cli.ts",
     "dev": "vite",
     "serve": "npm run build && vite preview",
     "demo": "vite --mode demo",

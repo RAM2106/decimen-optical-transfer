@@ -51,11 +51,39 @@ const settingsEl = document.getElementById("settings")!;
 const cfgWidth = document.getElementById("cfg-width") as HTMLSelectElement;
 const cfgCapFps = document.getElementById("cfg-capfps") as HTMLSelectElement;
 const cfgWorkers = document.getElementById("cfg-workers") as HTMLSelectElement;
+const cfgCamera = document.getElementById("cfg-camera") as HTMLSelectElement | null;
+const btnTorch = document.getElementById("btn-torch") as HTMLButtonElement | null;
 const cameraActual = document.getElementById("camera-actual")!;
 const noSignalToast = document.getElementById("no-signal")!;
 const noSignalDialog = document.getElementById("no-signal-dialog") as HTMLDialogElement;
 const noSignalTips = document.getElementById("no-signal-tips")!;
 const metric = (id: string) => document.getElementById(id)!;
+let isTorchOn = false;
+
+async function populateCameraDevices() {
+  if (!cfgCamera || !navigator.mediaDevices?.enumerateDevices) return;
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const videoInputs = devices.filter((d) => d.kind === "videoinput");
+    if (videoInputs.length === 0) return;
+    const currentVal = cfgCamera.value;
+    cfgCamera.replaceChildren();
+    const defaultOpt = document.createElement("option");
+    defaultOpt.value = "";
+    defaultOpt.textContent = "Default camera";
+    cfgCamera.appendChild(defaultOpt);
+    videoInputs.forEach((dev, idx) => {
+      const opt = document.createElement("option");
+      opt.value = dev.deviceId;
+      opt.textContent = dev.label || `Camera ${idx + 1}`;
+      cfgCamera.appendChild(opt);
+    });
+    if (currentVal) cfgCamera.value = currentVal;
+  } catch {
+    // Ignore enumeration errors
+  }
+}
+void populateCameraDevices();
 
 // Nothing has decoded in this long → the sender is almost certainly too dense
 // for this camera. The first nudge comes quickly (a dead link is dead within
@@ -158,12 +186,13 @@ async function start() {
   }
   const captureWidth = Number(cfgWidth.value);
   const captureFps = Number(cfgCapFps.value);
+  const selectedCamera = cfgCamera?.value;
   // Nothing on the page changes until the camera is actually running: the
   // error paths below all have to leave a usable Start button behind.
   startBtn.disabled = true;
   startBtn.textContent = "Starting…";
   const base: MediaTrackConstraints = {
-    facingMode: "environment",
+    ...(selectedCamera ? { deviceId: { exact: selectedCamera } } : { facingMode: "environment" }),
     width: { ideal: captureWidth },
     height: { ideal: Math.round((captureWidth * 3) / 4) },
   };
@@ -206,8 +235,8 @@ async function start() {
   void applyCameraExtras();
   if (!settingsWired) {
     settingsWired = true;
-    for (const el of [cfgWidth, cfgCapFps, cfgWorkers]) {
-      el.addEventListener("change", () => void applyReceiveSettings());
+    for (const el of [cfgWidth, cfgCapFps, cfgWorkers, cfgCamera].filter(Boolean)) {
+      el!.addEventListener("change", () => void applyReceiveSettings());
     }
   }
 
@@ -248,6 +277,24 @@ async function applyCameraExtras() {
       option.disabled = Number(option.value) > caps.maxFrameRate;
     }
   }
+  if (btnTorch) {
+    if (caps.torch) {
+      btnTorch.style.display = "";
+      btnTorch.onclick = async () => {
+        isTorchOn = !isTorchOn;
+        const ok = await applyAdvancedConstraint(track, { torch: isTorchOn });
+        if (ok) {
+          btnTorch.textContent = isTorchOn ? "🔦 Flashlight On" : "🔦 Flashlight Off";
+        } else {
+          isTorchOn = false;
+          btnTorch.textContent = "🔦 Flashlight Off";
+        }
+      };
+    } else {
+      btnTorch.style.display = "none";
+    }
+  }
+  void populateCameraDevices();
 }
 
 async function applyReceiveSettings() {
