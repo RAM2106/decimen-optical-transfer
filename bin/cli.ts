@@ -5,6 +5,7 @@ import path from "node:path";
 import { execSync } from "node:child_process";
 import QRCode from "qrcode";
 import { packFile, packFrame, fnv1a, type FrameHeader } from "../shared/protocol.js";
+import { packSnippet } from "../shared/snippet.js";
 import { LTEncoder } from "../shared/fountain.js";
 import { DEFAULT_FRAME_BYTES, DEFAULT_TX_FPS } from "../shared/send-settings.js";
 
@@ -125,12 +126,9 @@ async function runSend(targetArg: string, options: Record<string, string>) {
   let packed;
   let filename = "";
 
-  if (fs.existsSync(target)) {
-    const stats = fs.statSync(target);
-    if (!stats.isFile()) {
-      console.error(`❌ Error: ${target} is not a file.`);
-      process.exit(1);
-    }
+  const isRealFile = fs.existsSync(target) && fs.statSync(target).isFile();
+
+  if (isRealFile) {
     filename = path.basename(target);
     const fileBytes = fs.readFileSync(target);
     console.log(`📦 Packing file: ${filename} (${(fileBytes.length / 1024).toFixed(1)} KB)...`);
@@ -138,8 +136,8 @@ async function runSend(targetArg: string, options: Record<string, string>) {
   } else {
     filename = "snippet.txt";
     const textBytes = new TextEncoder().encode(target);
-    console.log(`📝 Packing text snippet (${textBytes.length} bytes)...`);
-    packed = await packFile("snippet.txt", "text/plain;charset=utf-8", textBytes);
+    console.log(`💬 Packing text snippet (${textBytes.length} bytes): "${target}"`);
+    packed = await packSnippet(target);
   }
 
   const encoder = new LTEncoder(packed.container, blockLen, sessionId);
