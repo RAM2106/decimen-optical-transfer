@@ -178,7 +178,7 @@ export async function packFile(
   }
 
   // Too small to be worth a gzip header, or a format gzip cannot help with.
-  const tryGzip = bytes.length >= 768 && !isPrecompressedType(type);
+  const tryGzip = bytes.length >= 128 && !isPrecompressedType(type);
   const [sha256, compressed] = await Promise.all([
     digest(bytes),
     tryGzip ? gzipAsync(bytes) : Promise.resolve(undefined),
