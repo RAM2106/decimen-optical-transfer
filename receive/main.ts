@@ -208,14 +208,22 @@ async function start() {
         video: { ...base, frameRate: { ideal: captureFps } },
       });
     }
-  } catch (err) {
-    const denied = err instanceof DOMException && err.name === "NotAllowedError";
-    offerRetry(
-      denied
-        ? "camera permission denied — allow it, then tap Start camera again."
-        : `camera: ${err instanceof Error ? err.message : String(err)}`,
-    );
-    return;
+  } catch {
+    try {
+      // Robust fallback for mobile phone cameras with strict hardware constraints
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: selectedCamera ? { deviceId: selectedCamera } : { facingMode: "environment" },
+      });
+    } catch (err) {
+      const denied = err instanceof DOMException && err.name === "NotAllowedError";
+      offerRetry(
+        denied
+          ? "camera permission denied — allow it, then tap Start camera again."
+          : `camera: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return;
+    }
   }
 
   startBtn.style.display = "none";
