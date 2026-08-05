@@ -145,11 +145,23 @@ async function runSend(targetArg: string, options: Record<string, string>) {
   console.log(`⚙️  Target: ${fps} FPS | Block Size: ${blockLen} bytes | Total Fountain Blocks: ${encoder.k}`);
   console.log(`Press Ctrl+C to stop.\n`);
 
+  const loop = options.loop === "true" || options.loop === "1";
+  const maxFrames = Number(options["stop-after"]) || (loop ? 0 : Math.max(encoder.k * 3, 40));
+
   let seq = 0;
   const intervalMs = Math.round(1000 / fps);
 
-  setInterval(async () => {
+  const timer = setInterval(async () => {
     try {
+      if (maxFrames > 0 && seq >= maxFrames) {
+        clearInterval(timer);
+        process.stdout.write("\x1B[H\x1B[2J");
+        console.log(`\n✅ RAM21 Optical Stream Complete!`);
+        console.log(`📦 Transmitted: ${filename} (${(packed.container.length / 1024).toFixed(1)} KB)`);
+        console.log(`🎉 Total Frames Sent: ${seq} (${(seq / encoder.k).toFixed(1)}x fountain coverage)\n`);
+        process.exit(0);
+      }
+
       const block = encoder.encode(seq);
       const header: FrameHeader = {
         sessionId,
@@ -173,7 +185,7 @@ async function runSend(targetArg: string, options: Record<string, string>) {
 
       // Clear screen and move cursor to top-left (flicker-free rendering)
       process.stdout.write("\x1B[H\x1B[2J");
-      console.log(`📡 RAM21 Optical Stream | Frame #${seq} | K=${encoder.k} blocks | ${filename}`);
+      console.log(`📡 RAM21 Optical Stream | Frame #${seq + 1}/${maxFrames || "∞"} | K=${encoder.k} blocks | ${filename}`);
       console.log(qrAscii);
       seq++;
     } catch (err) {
