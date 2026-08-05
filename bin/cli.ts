@@ -15,14 +15,14 @@ function showHelp() {
 📡 RAM21 Optical Transfer CLI Tool
 
 Usage:
-  npx ram21-opticaltransfer send <file_path|text> [--fps <number>] [--bytes <number>]
-  npx ram21-opticaltransfer receive [--out <output_dir>]
-  npx ram21-opticaltransfer --help
+  npx ram21-transfer send <file_path|text> [--fps <number>] [--bytes <number>]
+  npx ram21-transfer receive [--out <output_dir>]
+  npx ram21-transfer --help
 
 Examples:
-  npx ram21-opticaltransfer send ./document.pdf --fps 24 --bytes 1465
-  npx ram21-opticaltransfer send "Hello world!"
-  npx ram21-opticaltransfer receive --out ./downloads
+  npx ram21-transfer send ./document.pdf --fps 24 --bytes 1465
+  npx ram21-transfer send "Hello world!"
+  npx ram21-transfer receive --out ./downloads
 `);
 }
 
