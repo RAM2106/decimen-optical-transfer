@@ -30,16 +30,31 @@ Examples:
 `);
 }
 
-function parseOptions(argsList: string[]) {
+function extractTargetAndOptions(sendArgs: string[]): { target: string; options: Record<string, string> } {
   const options: Record<string, string> = {};
-  for (let i = 0; i < argsList.length; i++) {
-    if (argsList[i].startsWith("--")) {
-      const key = argsList[i].slice(2);
-      const val = argsList[i + 1] && !argsList[i + 1].startsWith("--") ? argsList[i + 1] : "true";
+  const nonFlagWords: string[] = [];
+
+  for (let i = 0; i < sendArgs.length; i++) {
+    if (sendArgs[i].startsWith("--")) {
+      const key = sendArgs[i].slice(2);
+      const val = sendArgs[i + 1] && !sendArgs[i + 1].startsWith("--") ? sendArgs[i + 1] : "true";
       options[key] = val;
+      if (val !== "true") i++;
+    } else {
+      nonFlagWords.push(sendArgs[i]);
     }
   }
-  return options;
+
+  if (nonFlagWords.length === 0) {
+    return { target: "", options };
+  }
+
+  const firstWord = nonFlagWords[0];
+  if (fs.existsSync(firstWord) && fs.statSync(firstWord).isFile()) {
+    return { target: firstWord, options };
+  }
+
+  return { target: nonFlagWords.join(" "), options };
 }
 
 function openNativeFileDialog(): string | null {
@@ -176,9 +191,8 @@ async function main() {
   }
 
   if (command === "send") {
-    const target = args[1];
-    const opts = parseOptions(args.slice(2));
-    await runSend(target, opts);
+    const { target, options } = extractTargetAndOptions(args.slice(1));
+    await runSend(target, options);
   } else if (command === "register-menu") {
     registerWindowsContextMenu();
   } else if (command === "share") {
