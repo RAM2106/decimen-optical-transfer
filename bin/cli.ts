@@ -2,6 +2,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { execSync } from "node:child_process";
 import QRCode from "qrcode";
 import { packFile, fnv1a } from "../shared/protocol.js";
 import { LTEncoder } from "../shared/fountain.js";
@@ -15,16 +16,17 @@ function showHelp() {
 📡 RAM21 Optical Transfer CLI Tool
 
 Usage:
-  npx ram21-transfer send <file_path|text> [--fps <number>] [--bytes <number>]
+  npx ram21-transfer send [file_path|text] [--fps <number>] [--bytes <number>]
+  npx ram21-transfer register-menu
   npx ram21-transfer share [url]
   npx ram21-transfer receive [--out <output_dir>]
   npx ram21-transfer --help
 
 Examples:
-  npx ram21-transfer send ./document.pdf --fps 24 --bytes 1465
-  npx ram21-transfer send "Hello world!"
+  npx ram21-transfer send                   (Opens Native File Explorer Window!)
+  npx ram21-transfer send ./document.pdf
+  npx ram21-transfer register-menu          (Adds 'Send via RAM21' to Windows right-click)
   npx ram21-transfer share
-  npx ram21-transfer receive --out ./downloads
 `);
 }
 
@@ -40,6 +42,43 @@ function parseOptions(argsList: string[]) {
   return options;
 }
 
+function openNativeFileDialog(): string | null {
+  if (process.platform === "win32") {
+    const psScript = `Add-Type -AssemblyName System.Windows.Forms; $d = New-Object System.Windows.Forms.OpenFileDialog; $d.Title = 'RAM21 Optical Transfer — Pick a file to stream'; if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $d.FileName }`;
+    try {
+      const out = execSync(`powershell -NoProfile -Command "${psScript}"`, { encoding: "utf8" }).trim();
+      return out || null;
+    } catch {
+      return null;
+    }
+  } else if (process.platform === "darwin") {
+    try {
+      const out = execSync(`osascript -e 'posix path of (choose file with prompt "RAM21 Optical Transfer — Pick a file")'`, { encoding: "utf8" }).trim();
+      return out || null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function registerWindowsContextMenu() {
+  if (process.platform !== "win32") {
+    console.log("ℹ️ Right-click context menu registration is supported on Windows.");
+    return;
+  }
+  try {
+    const regKey = `HKCU\\Software\\Classes\\*\\shell\\RAM21Transfer`;
+    const regCmd = `cmd.exe /c npx ram21-transfer send "%1"`;
+    execSync(`reg add "${regKey}" /ve /d "Send via RAM21 Optical Stream" /f`);
+    execSync(`reg add "${regKey}\\command" /ve /d "${regCmd}" /f`);
+    console.log("✅ Successfully added 'Send via RAM21 Optical Stream' to Windows right-click menu!");
+    console.log("👉 Now you can right-click ANY file in File Explorer to stream it instantly.");
+  } catch (err) {
+    console.error("❌ Failed to register context menu:", err instanceof Error ? err.message : String(err));
+  }
+}
+
 async function runShare(customUrl?: string) {
   const targetUrl = customUrl || "https://ram2106.github.io/decimen-optical-transfer/receive/";
   console.log(`\n📱 RAM21 Receiver Share Code`);
@@ -50,10 +89,16 @@ async function runShare(customUrl?: string) {
   console.log(`🔗 URL: ${targetUrl}\n`);
 }
 
-async function runSend(target: string, options: Record<string, string>) {
+async function runSend(targetArg: string, options: Record<string, string>) {
+  let target = targetArg;
   if (!target) {
-    console.error("❌ Error: Please specify a file path or text snippet to send.");
-    process.exit(1);
+    console.log("📁 Opening File Explorer dialog window to pick a file...");
+    const picked = openNativeFileDialog();
+    if (!picked) {
+      console.log("❌ No file selected. Exiting.");
+      process.exit(0);
+    }
+    target = picked;
   }
 
   const fps = Number(options.fps) || DEFAULT_TX_FPS;
@@ -132,6 +177,8 @@ async function main() {
     const target = args[1];
     const opts = parseOptions(args.slice(2));
     await runSend(target, opts);
+  } else if (command === "register-menu") {
+    registerWindowsContextMenu();
   } else if (command === "share") {
     const customUrl = args[1];
     await runShare(customUrl);
