@@ -143,6 +143,7 @@ export default defineConfig(({ mode }) => {
           ],
         },
         workbox: {
+          skipWaiting: true,
           // Without this a rebuilt site serves stale pages indefinitely.
           // `registerType: "autoUpdate"` gives the new worker skipWaiting(), so
           // it activates at once — but activating is not the same as taking
