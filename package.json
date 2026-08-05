@@ -1,11 +1,12 @@
 {
-  "name": "ram21",
+  "name": "ram21-opticaltransfer",
   "version": "0.3.0",
   "license": "MIT",
   "description": "Offline file and text transfer using fountain-coded animated QR codes — RAM21 Optical Transfer.",
   "type": "module",
   "bin": {
-    "ram21": "./bin/cli.js"
+    "ram21-opticaltransfer": "bin/cli.js",
+    "ram21": "bin/cli.js"
   },
   "scripts": {
     "ram21": "tsx ./bin/cli.ts",
