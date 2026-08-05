@@ -192,35 +192,34 @@ async function start() {
   startBtn.disabled = true;
   startBtn.textContent = "Starting…";
   const base: MediaTrackConstraints = {
-    ...(selectedCamera ? { deviceId: { exact: selectedCamera } } : { facingMode: "environment" }),
+    ...(selectedCamera ? { deviceId: { exact: selectedCamera } } : { facingMode: { ideal: "environment" } }),
     width: { ideal: captureWidth },
-    height: { ideal: Math.round((captureWidth * 3) / 4) },
   };
   try {
     try {
       stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
-        video: { ...base, frameRate: { exact: captureFps } },
+        video: { ...base, frameRate: { ideal: captureFps } },
       });
     } catch {
       stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
-        video: { ...base, frameRate: { ideal: captureFps } },
+        video: base,
       });
     }
   } catch {
     try {
-      // Robust fallback for mobile phone cameras with strict hardware constraints
+      // Ultimate simple fallback for any smartphone or tablet camera
       stream = await navigator.mediaDevices.getUserMedia({
         audio: false,
-        video: selectedCamera ? { deviceId: selectedCamera } : { facingMode: "environment" },
+        video: true,
       });
     } catch (err) {
       const denied = err instanceof DOMException && err.name === "NotAllowedError";
       offerRetry(
         denied
-          ? "camera permission denied — allow it, then tap Start camera again."
-          : `camera: ${err instanceof Error ? err.message : String(err)}`,
+          ? "camera permission denied — allow it in your browser settings, then tap Start camera again."
+          : `camera error: ${err instanceof Error ? err.message : String(err)}`,
       );
       return;
     }
