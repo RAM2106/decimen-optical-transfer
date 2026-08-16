@@ -1,23 +1,40 @@
-# Decimen Optical Transfer: fountain-coded QR file transfer
+# Night Coder Optical Transfer: Fountain-Coded QR File Transfer
 
-Send a file between two devices using nothing but a **screen and a camera**.
-One page displays the file as an endless stream of animated QR codes; another
-device points its camera at it and reconstructs the file. **No network path
-between the devices, no app, no pairing, no permissions beyond the camera.**
-The payload travels as light.
+Send any file or text between two devices using nothing but a **screen and a camera**.
+One device displays the file as an endless animated stream of high-contrast QR codes; another device points its camera at it and instantly reconstructs the file.
 
-## Try it
+**No cloud accounts, no pairing, no Wi-Fi/Bluetooth required, zero internet.** The payload travels as pure light.
 
-### **→ [decimen.app](https://decimen.app/)**
+---
 
-Open it on both devices and go — nothing to install. Works offline after the
-first visit, and installs as an app on both iOS and Android if you want it on
-a home screen.
+## 🚀 Instant CLI Usage (Zero Install)
 
-Files up to 64 MB (or a pasted text snippet), filename and media type
-preserved, gzip only when it helps, SHA-256 verified before anything is
-offered — and received video plays right in the page. Extracted from a larger
-experiment that reached **128 KB/s phone-to-phone**.
+You can run Night Coder directly with `npx`:
+
+```bash
+# 📡 1. Optical Air-Gapped Stream (Pure Light · Zero Networks)
+npx ram21                       # Opens file picker dialog & starts streaming!
+npx ram21 ./document.pdf         # Streams file directly
+
+# ⚡ 2. Turbo Instant Download (50+ MB/s · Wi-Fi/Hotspot Scan)
+npx ram21 -t ./video.mp4        # Point any phone camera to download at 50+ MB/s
+
+# 📱 3. Show Mobile Phone Receiver QR
+npx ram21 -s
+
+# 🖱️ 4. Add to Windows Right-Click Menu
+npx ram21 menu
+```
+
+---
+
+## 🌐 Web Application
+
+### **→ [ram2106.github.io/decimen-optical-transfer](https://ram2106.github.io/decimen-optical-transfer/)**
+
+Open it on both devices and go — nothing to install. Works 100% offline after the first visit.
+
+Files up to 64 MB (or pasted text), preserved filename, automatic gzip, SHA-256 integrity verification, and instant video playback. Extracted from a high-throughput engine reaching **130+ KB/s phone-to-phone over pure screen light**.
 
 <p align="center">
   <img src="docs/receiving.jpg" width="420"
