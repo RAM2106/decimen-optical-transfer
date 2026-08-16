@@ -327,6 +327,7 @@ async function startStream(revealStage = false) {
   const frameBytes = Number(cfgBytes.value);
   const ecc = cfgEcc.value as "L" | "M" | "Q" | "H";
   const displayPx = Number(cfgSize.value);
+  const streamMode = cfgMode?.value || "rgb";
 
   const sessionId = (Math.floor(Math.random() * 0xffff) + 1) & 0xffff;
   const blockLen = blockLength(frameBytes);
@@ -366,7 +367,8 @@ async function startStream(revealStage = false) {
 
   const sizeCanvas = () => {
     const dpr = window.devicePixelRatio || 1;
-    const total = modules + 2 * MARGIN;
+    const gridFactor = (streamMode === "turbo" || streamMode === "tiled") ? 2 : 1;
+    const total = (modules + 2 * MARGIN) * gridFactor;
     let cssBudget: number;
     if (document.body.classList.contains("qr-full")) {
       // Tap-to-fullscreen: the whole short viewport edge. The display-size
@@ -398,8 +400,6 @@ async function startStream(revealStage = false) {
     canvas.style.width = `${(total * scale) / dpr}px`;
     canvas.style.height = `${(total * scale) / dpr}px`;
   };
-
-  const streamMode = cfgMode?.value || "standard";
 
   const makeSingleQr = (seq: number) => {
     const bytes = packFrame({ ...header, seq }, encoder.encode(seq));
