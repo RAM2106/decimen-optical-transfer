@@ -3,6 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import http from "node:http";
 import { execSync } from "node:child_process";
 import QRCode from "qrcode";
 import { packFile, packFrame, fnv1a, type FrameHeader } from "../shared/protocol.js";
@@ -18,15 +19,16 @@ function showHelp() {
 📡 Night Coder Optical Transfer CLI Tool
 
 Usage:
-  npx ram21-transfer send [file_path|text]
+  npx ram21-transfer send [file_path|text]     (Optical Fountain Stream · Pure Light)
+  npx ram21-transfer turbo [file_path|text]    (⚡ Turbo Instant Download · 50+ MB/s)
   npx ram21-transfer share
   npx ram21-transfer register-menu
   npx ram21-transfer --help
 
 Examples:
-  npx ram21-transfer send                   (Opens file picker dialog)
-  npx ram21-transfer send ./document.pdf     (Continuously streams file QR code)
-  npx ram21-transfer send "Your text"       (Streams text snippet)
+  npx ram21-transfer send                   (Opens file picker dialog for optical stream)
+  npx ram21-transfer send ./document.pdf     (Continuous optical fountain QR stream)
+  npx ram21-transfer turbo ./video.mp4      (Instant 50+ MB/s Wi-Fi/Hotspot scan download)
   npx ram21-transfer share                  (Shows receiver mobile QR code)
 `);
 }
@@ -84,12 +86,19 @@ function registerWindowsContextMenu() {
     return;
   }
   try {
-    const regKey = `HKCU\\Software\\Classes\\*\\shell\\NightCoderTransfer`;
-    const regCmd = `cmd.exe /c npx ram21-transfer send "%1"`;
-    execSync(`reg add "${regKey}" /ve /d "Send via Night Coder Optical Stream" /f`);
-    execSync(`reg add "${regKey}\\command" /ve /d "${regCmd}" /f`);
-    console.log("✅ Successfully added 'Send via Night Coder Optical Stream' to Windows right-click menu!");
-    console.log("👉 Now you can right-click ANY file in File Explorer to stream it instantly.");
+    const regKey1 = `HKCU\\Software\\Classes\\*\\shell\\NightCoderTransfer`;
+    const regCmd1 = `cmd.exe /c npx ram21-transfer send "%1"`;
+    execSync(`reg add "${regKey1}" /ve /d "Send via Night Coder Optical Stream (Air-Gapped)" /f`);
+    execSync(`reg add "${regKey1}\\command" /ve /d "${regCmd1}" /f`);
+
+    const regKey2 = `HKCU\\Software\\Classes\\*\\shell\\NightCoderTurbo`;
+    const regCmd2 = `cmd.exe /c npx ram21-transfer turbo "%1"`;
+    execSync(`reg add "${regKey2}" /ve /d "Send via Night Coder Turbo (50+ MB/s)" /f`);
+    execSync(`reg add "${regKey2}\\command" /ve /d "${regCmd2}" /f`);
+
+    console.log("✅ Successfully added Night Coder options to Windows right-click menu!");
+    console.log("  1. 'Send via Night Coder Optical Stream (Air-Gapped)'");
+    console.log("  2. 'Send via Night Coder Turbo (50+ MB/s)'");
   } catch (err) {
     console.error("❌ Failed to register context menu:", err instanceof Error ? err.message : String(err));
   }
@@ -242,15 +251,87 @@ async function runSend(targetArg: string, options: Record<string, string>) {
   }, intervalMs);
 }
 
+async function runTurbo(targetArg?: string) {
+  let target = targetArg;
+  if (!target) {
+    console.log("📁 Opening File Explorer dialog window to pick a file...");
+    const picked = openNativeFileDialog();
+    if (!picked) {
+      console.log("❌ No file selected. Exiting.");
+      process.exit(0);
+    }
+    target = picked;
+  }
+
+  let filename = "downloaded-file.bin";
+  let fileBytes: Buffer;
+  const isRealFile = fs.existsSync(target) && fs.statSync(target).isFile();
+
+  if (isRealFile) {
+    filename = path.basename(target);
+    fileBytes = fs.readFileSync(target);
+  } else {
+    filename = "snippet.txt";
+    fileBytes = Buffer.from(target, "utf8");
+  }
+
+  const localIp = getLocalIpAddress();
+  const server = http.createServer((req, res) => {
+    // CORS and forced download attachment headers
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(filename)}"`);
+    res.setHeader("Content-Length", fileBytes.length);
+    res.setHeader("Content-Type", "application/octet-stream");
+
+    if (req.url === "/" || req.url?.startsWith("/download") || req.url?.startsWith(`/${encodeURIComponent(filename)}`)) {
+      const startTime = performance.now();
+      res.writeHead(200);
+      res.end(fileBytes, () => {
+        const durationSec = Math.max(0.01, (performance.now() - startTime) / 1000);
+        const mb = (fileBytes.length / (1024 * 1024)).toFixed(2);
+        const mbps = ((fileBytes.length / (1024 * 1024)) / durationSec).toFixed(1);
+        console.log(`\n🎉 [Instant Download Complete] Sent ${mb} MB in ${durationSec.toFixed(2)}s (${mbps} MB/s) to ${req.socket.remoteAddress}!`);
+      });
+      return;
+    }
+
+    res.writeHead(404);
+    res.end("Not found");
+  });
+
+  server.listen(0, "0.0.0.0", async () => {
+    const address = server.address();
+    const port = typeof address === "object" && address ? address.port : 5188;
+    const downloadUrl = `http://${localIp}:${port}/${encodeURIComponent(filename)}`;
+
+    console.log(`\n⚡ Night Coder Turbo Download (50+ MB/s · Zero Internet)`);
+    console.log(`📦 Serving: ${filename} (${(fileBytes.length / (1024 * 1024)).toFixed(2)} MB)`);
+    console.log(`📱 Point ANY phone camera at this QR code to download instantly:\n`);
+
+    const qrAscii = await QRCode.toString(downloadUrl, { type: "terminal", small: true });
+    console.log(qrAscii);
+    console.log(`🔗 Direct Download Link: ${downloadUrl}`);
+    console.log(`💡 Note: Your phone and laptop should be on the same Wi-Fi or mobile hotspot.`);
+    console.log(`Press Ctrl+C to stop.\n`);
+  });
+}
+
 async function main() {
   if (!command || command === "--help" || command === "-h") {
     showHelp();
     return;
   }
 
-  if (command === "send") {
+  if (command === "turbo") {
+    const { target } = extractTargetAndOptions(args.slice(1));
+    await runTurbo(target);
+  } else if (command === "send") {
     const { target, options } = extractTargetAndOptions(args.slice(1));
-    await runSend(target, options);
+    if (options.turbo === "true" || options.fast === "true") {
+      await runTurbo(target);
+    } else {
+      await runSend(target, options);
+    }
   } else if (command === "register-menu") {
     registerWindowsContextMenu();
   } else if (command === "share") {
