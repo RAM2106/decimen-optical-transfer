@@ -201,6 +201,9 @@ body.qr-full #stage[hidden] {
 .stage canvas {
   display: block;
   image-rendering: pixelated;
+  max-width: 100%;
+  height: auto;
+  box-sizing: border-box;
 }
 .preview {
   position: relative;

@@ -2,6 +2,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import { execSync } from "node:child_process";
 import QRCode from "qrcode";
 import { packFile, packFrame, fnv1a, type FrameHeader } from "../shared/protocol.js";
@@ -95,6 +96,38 @@ function registerWindowsContextMenu() {
   }
 }
 
+function getLocalIpAddress(): string {
+  try {
+    const interfaces = os.networkInterfaces();
+    let fallbackIp = "localhost";
+    for (const name of Object.keys(interfaces)) {
+      const lowerName = name.toLowerCase();
+      // Skip VirtualBox, VMware, WSL, and Hyper-V virtual adapters
+      if (
+        lowerName.includes("virtual") ||
+        lowerName.includes("vbox") ||
+        lowerName.includes("vmware") ||
+        lowerName.includes("vethernet") ||
+        lowerName.includes("wsl")
+      ) {
+        continue;
+      }
+      for (const net of interfaces[name] || []) {
+        if (net.family === "IPv4" && !net.internal) {
+          if (net.address.startsWith("192.168.56.")) {
+            fallbackIp = net.address;
+            continue;
+          }
+          return net.address;
+        }
+      }
+    }
+    return fallbackIp;
+  } catch {
+    return "localhost";
+  }
+}
+
 async function runShare(customUrl?: string) {
   const targetUrl = customUrl || "https://ram2106.github.io/decimen-optical-transfer/receive/";
   console.log(`\n📱 RAM21 Receiver Share Code`);
@@ -102,10 +135,14 @@ async function runShare(customUrl?: string) {
   
   const qrAscii = await QRCode.toString(targetUrl, { type: "terminal", small: true });
   console.log(qrAscii);
-  console.log(`🔗 URL: ${targetUrl}\n`);
+  console.log(`🔗 Live App URL: ${targetUrl}`);
+  const localIp = getLocalIpAddress();
+  if (localIp !== "localhost") {
+    console.log(`📡 Local Dev URL: https://${localIp}:5173/receive/\n`);
+  }
 }
 
-const DEFAULT_CLI_BLOCK_BYTES = 512;
+const DEFAULT_CLI_BLOCK_BYTES = 256;
 
 async function runSend(targetArg: string, options: Record<string, string>) {
   let target = targetArg;
