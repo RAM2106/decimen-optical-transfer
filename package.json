@@ -1,6 +1,6 @@
 {
   "name": "ram21-transfer",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "license": "MIT",
   "description": "Offline file and text transfer using fountain-coded animated QR codes — Night Coder Optical Transfer.",
   "type": "module",

@@ -18,13 +18,15 @@ function showHelp() {
   console.log(`
 📡 Night Coder Transfer CLI
 
-Super Easy Usage:
-  npx ram21                       (Opens file picker & streams)
-  npx ram21 [file_path|text]      (Streams file or text directly)
-  npx ram21 -t [file_path]        (⚡ Turbo Mode · 50+ MB/s)
-  npx ram21 -s                    (📱 Show receiver app QR)
-  npx ram21 menu                  (🖱️ Add to Windows right-click menu)
-  npx ram21 -h                    (Show this help message)
+Usage with npx:
+  npx ram21-transfer               (Opens file picker & streams)
+  npx ram21-transfer [file_path]   (Streams file or text directly)
+  npx ram21-transfer -t [file]     (⚡ Turbo Mode · 50+ MB/s)
+  npx ram21-transfer -s            (📱 Show receiver app QR)
+  npx ram21-transfer menu          (🖱️ Add to Windows right-click menu)
+  npx ram21-transfer -h            (Show this help message)
+
+👉 Tip: Install globally with 'npm i -g ram21-transfer' to just type 'ram21' or 'nightcoder'!
 `);
 }
 

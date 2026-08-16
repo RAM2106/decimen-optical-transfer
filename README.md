@@ -13,17 +13,17 @@ You can run Night Coder directly with `npx`:
 
 ```bash
 # 📡 1. Optical Air-Gapped Stream (Pure Light · Zero Networks)
-npx ram21                       # Opens file picker dialog & starts streaming!
-npx ram21 ./document.pdf         # Streams file directly
+npx ram21-transfer                       # Opens file picker dialog & starts streaming!
+npx ram21-transfer ./document.pdf         # Streams file directly
 
 # ⚡ 2. Turbo Instant Download (50+ MB/s · Wi-Fi/Hotspot Scan)
-npx ram21 -t ./video.mp4        # Point any phone camera to download at 50+ MB/s
+npx ram21-transfer -t ./video.mp4        # Point any phone camera to download at 50+ MB/s
 
 # 📱 3. Show Mobile Phone Receiver QR
-npx ram21 -s
+npx ram21-transfer -s
 
 # 🖱️ 4. Add to Windows Right-Click Menu
-npx ram21 menu
+npx ram21-transfer menu
 ```
 
 ---
