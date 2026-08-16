@@ -152,10 +152,14 @@ function getOptimalBlockBytes(options: Record<string, string>): number {
   if (options.bytes && Number(options.bytes) > 0) {
     return Number(options.bytes);
   }
+  if (options.turbo === "true" || options.fast === "true") {
+    return 1000;
+  }
   const size = (options.size || "").toLowerCase();
   if (size === "small" || options.compact === "true") return 120;
   if (size === "medium") return 180;
   if (size === "large") return 256;
+  if (size === "turbo" || size === "fast") return 1000;
 
   // Auto-detect terminal columns to ensure QR never line-wraps
   const cols = process.stdout.columns || 80;
@@ -176,7 +180,8 @@ async function runSend(targetArg: string, options: Record<string, string>) {
     target = picked;
   }
 
-  const fps = Number(options.fps) || 30;
+  const isTurbo = options.turbo === "true" || options.fast === "true";
+  const fps = Number(options.fps) || (isTurbo ? 45 : 30);
   const blockLen = getOptimalBlockBytes(options);
   const sessionId = (Math.random() * 0xffff) | 0;
 
