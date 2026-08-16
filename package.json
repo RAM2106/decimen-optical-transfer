@@ -11,7 +11,9 @@
     "LICENSE"
   ],
   "bin": {
-    "ram21-transfer": "bin/cli.js"
+    "ram21-transfer": "bin/cli.js",
+    "ram21": "bin/cli.js",
+    "nightcoder": "bin/cli.js"
   },
   "scripts": {
     "ram21": "tsx ./bin/cli.ts",

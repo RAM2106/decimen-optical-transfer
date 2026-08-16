@@ -16,20 +16,15 @@ const command = args[0];
 
 function showHelp() {
   console.log(`
-📡 Night Coder Optical Transfer CLI Tool
+📡 Night Coder Transfer CLI
 
-Usage:
-  npx ram21-transfer send [file_path|text]     (Optical Fountain Stream · Pure Light)
-  npx ram21-transfer turbo [file_path|text]    (⚡ Turbo Instant Download · 50+ MB/s)
-  npx ram21-transfer share
-  npx ram21-transfer register-menu
-  npx ram21-transfer --help
-
-Examples:
-  npx ram21-transfer send                   (Opens file picker dialog for optical stream)
-  npx ram21-transfer send ./document.pdf     (Continuous optical fountain QR stream)
-  npx ram21-transfer turbo ./video.mp4      (Instant 50+ MB/s Wi-Fi/Hotspot scan download)
-  npx ram21-transfer share                  (Shows receiver mobile QR code)
+Super Easy Usage:
+  npx ram21                       (Opens file picker & streams)
+  npx ram21 [file_path|text]      (Streams file or text directly)
+  npx ram21 -t [file_path]        (⚡ Turbo Mode · 50+ MB/s)
+  npx ram21 -s                    (📱 Show receiver app QR)
+  npx ram21 menu                  (🖱️ Add to Windows right-click menu)
+  npx ram21 -h                    (Show this help message)
 `);
 }
 
@@ -38,13 +33,25 @@ function extractTargetAndOptions(sendArgs: string[]): { target: string; options:
   const nonFlagWords: string[] = [];
 
   for (let i = 0; i < sendArgs.length; i++) {
-    if (sendArgs[i].startsWith("--")) {
-      const key = sendArgs[i].slice(2);
-      const val = sendArgs[i + 1] && !sendArgs[i + 1].startsWith("--") ? sendArgs[i + 1] : "true";
+    const arg = sendArgs[i];
+    if (arg === "-t" || arg === "--turbo" || arg === "--fast") {
+      options.turbo = "true";
+    } else if (arg === "-s" || arg === "--share") {
+      options.share = "true";
+    } else if (arg === "-h" || arg === "--help" || arg === "help") {
+      options.help = "true";
+    } else if (arg.startsWith("--")) {
+      const key = arg.slice(2);
+      const val = sendArgs[i + 1] && !sendArgs[i + 1].startsWith("-") ? sendArgs[i + 1] : "true";
+      options[key] = val;
+      if (val !== "true") i++;
+    } else if (arg.startsWith("-") && arg.length === 2) {
+      const key = arg.slice(1);
+      const val = sendArgs[i + 1] && !sendArgs[i + 1].startsWith("-") ? sendArgs[i + 1] : "true";
       options[key] = val;
       if (val !== "true") i++;
     } else {
-      nonFlagWords.push(sendArgs[i]);
+      nonFlagWords.push(arg);
     }
   }
 
@@ -317,32 +324,40 @@ async function runTurbo(targetArg?: string) {
 }
 
 async function main() {
-  if (!command || command === "--help" || command === "-h") {
+  const { target, options } = extractTargetAndOptions(args);
+
+  if (options.help === "true" || command === "--help" || command === "-h" || command === "help") {
     showHelp();
     return;
   }
 
-  if (command === "turbo") {
-    const { target } = extractTargetAndOptions(args.slice(1));
-    await runTurbo(target);
-  } else if (command === "send") {
-    const { target, options } = extractTargetAndOptions(args.slice(1));
-    if (options.turbo === "true" || options.fast === "true") {
-      await runTurbo(target);
-    } else {
-      await runSend(target, options);
-    }
-  } else if (command === "register-menu") {
-    registerWindowsContextMenu();
-  } else if (command === "share") {
-    const customUrl = args[1];
+  if (options.share === "true" || command === "share" || command === "-s") {
+    const customUrl = args[1] && !args[1].startsWith("-") ? args[1] : undefined;
     await runShare(customUrl);
-  } else if (command === "receive") {
+    return;
+  }
+
+  if (command === "menu" || command === "register-menu") {
+    registerWindowsContextMenu();
+    return;
+  }
+
+  if (command === "receive") {
     console.log("📷 Night Coder CLI Receiver mode requires a connected camera stream.");
     console.log("👉 Tip: For mobile phone scanning, open https://ram2106.github.io/decimen-optical-transfer/receive/ or use the mobile PWA app.");
-  } else {
-    showHelp();
+    return;
   }
+
+  // Turbo Mode: npx ram21 -t [file] or npx ram21 turbo [file]
+  if (options.turbo === "true" || command === "turbo" || command === "-t") {
+    const cleanTarget = (target === "turbo" || target === "-t") ? "" : target;
+    await runTurbo(cleanTarget);
+    return;
+  }
+
+  // Optical Fountain Mode: npx ram21 [file] or npx ram21 (file picker) or npx ram21 send [file]
+  const cleanTarget = target === "send" ? "" : target;
+  await runSend(cleanTarget, options);
 }
 
 main().catch((err) => {
