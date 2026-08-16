@@ -18,15 +18,21 @@ function showHelp() {
 📡 Night Coder Optical Transfer CLI Tool
 
 Usage:
-  npx ram21-transfer send [file_path|text] [--fps <number>] [--bytes <number>]
+  npx ram21-transfer send [file_path|text] [--size <small|medium|large>] [--bytes <number>] [--fps <number>]
   npx ram21-transfer register-menu
   npx ram21-transfer share [url]
   npx ram21-transfer receive [--out <output_dir>]
   npx ram21-transfer --help
 
+Options:
+  --size <small|medium|large>  QR code display size (default: auto-fits terminal)
+  --compact                    Smallest compact QR code (fits narrow terminals)
+  --bytes <number>             Custom payload bytes per frame
+  --fps <number>               Frames per second (default: 30)
+
 Examples:
   npx ram21-transfer send                   (Opens Native File Explorer Window!)
-  npx ram21-transfer send ./document.pdf
+  npx ram21-transfer send ./document.pdf --size small
   npx ram21-transfer register-menu          (Adds 'Send via Night Coder' to Windows right-click)
   npx ram21-transfer share
 `);
@@ -142,7 +148,21 @@ async function runShare(customUrl?: string) {
   }
 }
 
-const DEFAULT_CLI_BLOCK_BYTES = 256;
+function getOptimalBlockBytes(options: Record<string, string>): number {
+  if (options.bytes && Number(options.bytes) > 0) {
+    return Number(options.bytes);
+  }
+  const size = (options.size || "").toLowerCase();
+  if (size === "small" || options.compact === "true") return 120;
+  if (size === "medium") return 180;
+  if (size === "large") return 256;
+
+  // Auto-detect terminal columns to ensure QR never line-wraps
+  const cols = process.stdout.columns || 80;
+  if (cols < 65) return 120; // V6 (45 cols)
+  if (cols < 80) return 160; // V7 (49 cols)
+  return 180; // V8 (53 cols, safe for standard 80-col terminals)
+}
 
 async function runSend(targetArg: string, options: Record<string, string>) {
   let target = targetArg;
@@ -157,7 +177,7 @@ async function runSend(targetArg: string, options: Record<string, string>) {
   }
 
   const fps = Number(options.fps) || 30;
-  const blockLen = Number(options.bytes) || DEFAULT_CLI_BLOCK_BYTES;
+  const blockLen = getOptimalBlockBytes(options);
   const sessionId = (Math.random() * 0xffff) | 0;
 
   let packed;
