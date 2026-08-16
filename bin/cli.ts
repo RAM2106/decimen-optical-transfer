@@ -15,7 +15,7 @@ const command = args[0];
 
 function showHelp() {
   console.log(`
-📡 RAM21 Optical Transfer CLI Tool
+📡 Night Coder Optical Transfer CLI Tool
 
 Usage:
   npx ram21-transfer send [file_path|text] [--fps <number>] [--bytes <number>]
@@ -27,7 +27,7 @@ Usage:
 Examples:
   npx ram21-transfer send                   (Opens Native File Explorer Window!)
   npx ram21-transfer send ./document.pdf
-  npx ram21-transfer register-menu          (Adds 'Send via RAM21' to Windows right-click)
+  npx ram21-transfer register-menu          (Adds 'Send via Night Coder' to Windows right-click)
   npx ram21-transfer share
 `);
 }
@@ -61,7 +61,7 @@ function extractTargetAndOptions(sendArgs: string[]): { target: string; options:
 
 function openNativeFileDialog(): string | null {
   if (process.platform === "win32") {
-    const psScript = `Add-Type -AssemblyName System.Windows.Forms; $d = New-Object System.Windows.Forms.OpenFileDialog; $d.Title = 'RAM21 Optical Transfer — Pick a file to stream'; if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $d.FileName }`;
+    const psScript = `Add-Type -AssemblyName System.Windows.Forms; $d = New-Object System.Windows.Forms.OpenFileDialog; $d.Title = 'Night Coder Optical Transfer — Pick a file to stream'; if ($d.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $d.FileName }`;
     try {
       const out = execSync(`powershell -NoProfile -Command "${psScript}"`, { encoding: "utf8" }).trim();
       return out || null;
@@ -70,7 +70,7 @@ function openNativeFileDialog(): string | null {
     }
   } else if (process.platform === "darwin") {
     try {
-      const out = execSync(`osascript -e 'posix path of (choose file with prompt "RAM21 Optical Transfer — Pick a file")'`, { encoding: "utf8" }).trim();
+      const out = execSync(`osascript -e 'posix path of (choose file with prompt "Night Coder Optical Transfer — Pick a file")'`, { encoding: "utf8" }).trim();
       return out || null;
     } catch {
       return null;
@@ -85,11 +85,11 @@ function registerWindowsContextMenu() {
     return;
   }
   try {
-    const regKey = `HKCU\\Software\\Classes\\*\\shell\\RAM21Transfer`;
+    const regKey = `HKCU\\Software\\Classes\\*\\shell\\NightCoderTransfer`;
     const regCmd = `cmd.exe /c npx ram21-transfer send "%1"`;
-    execSync(`reg add "${regKey}" /ve /d "Send via RAM21 Optical Stream" /f`);
+    execSync(`reg add "${regKey}" /ve /d "Send via Night Coder Optical Stream" /f`);
     execSync(`reg add "${regKey}\\command" /ve /d "${regCmd}" /f`);
-    console.log("✅ Successfully added 'Send via RAM21 Optical Stream' to Windows right-click menu!");
+    console.log("✅ Successfully added 'Send via Night Coder Optical Stream' to Windows right-click menu!");
     console.log("👉 Now you can right-click ANY file in File Explorer to stream it instantly.");
   } catch (err) {
     console.error("❌ Failed to register context menu:", err instanceof Error ? err.message : String(err));
@@ -178,7 +178,7 @@ async function runSend(targetArg: string, options: Record<string, string>) {
   }
 
   const encoder = new LTEncoder(packed.container, blockLen, sessionId);
-  console.log(`🚀 Streaming RAM21 Optical Transfer: ${filename}`);
+  console.log(`🚀 Streaming Night Coder Optical Transfer: ${filename}`);
   console.log(`⚙️  Target: ${fps} FPS | Block Size: ${blockLen} bytes | Total Fountain Blocks: ${encoder.k}`);
   console.log(`Press Ctrl+C to stop.\n`);
 
@@ -193,7 +193,7 @@ async function runSend(targetArg: string, options: Record<string, string>) {
       if (maxFrames > 0 && seq >= maxFrames) {
         clearInterval(timer);
         process.stdout.write("\x1B[H\x1B[2J");
-        console.log(`\n✅ RAM21 Optical Stream Batch Complete!`);
+        console.log(`\n✅ Night Coder Optical Stream Batch Complete!`);
         console.log(`📦 Transmitted: ${filename} (${(packed.container.length / 1024).toFixed(1)} KB)`);
         console.log(`🎉 Total Frames Sent: ${seq} (${(seq / encoder.k).toFixed(1)}x fountain coverage)\n`);
         console.log(`👉 Didn't catch it on phone? Press [ENTER] to stream another batch, or [Ctrl+C] to exit.`);
@@ -228,7 +228,7 @@ async function runSend(targetArg: string, options: Record<string, string>) {
 
       // Clear screen and move cursor to top-left (flicker-free rendering)
       process.stdout.write("\x1B[H\x1B[2J");
-      console.log(`📡 RAM21 Optical Stream | Frame #${seq + 1}/${maxFrames || "∞"} | K=${encoder.k} blocks | ${filename}`);
+      console.log(`📡 Night Coder Optical Stream | Frame #${seq + 1}/${maxFrames || "∞"} | K=${encoder.k} blocks | ${filename}`);
       console.log(qrAscii);
       seq++;
     } catch (err) {
@@ -252,8 +252,8 @@ async function main() {
     const customUrl = args[1];
     await runShare(customUrl);
   } else if (command === "receive") {
-    console.log("📷 RAM21 CLI Receiver mode requires a connected camera stream.");
-    console.log("👉 Tip: For mobile phone scanning, open https://localhost:5180/receive/ or use the mobile PWA app.");
+    console.log("📷 Night Coder CLI Receiver mode requires a connected camera stream.");
+    console.log("👉 Tip: For mobile phone scanning, open https://ram2106.github.io/decimen-optical-transfer/receive/ or use the mobile PWA app.");
   } else {
     showHelp();
   }
