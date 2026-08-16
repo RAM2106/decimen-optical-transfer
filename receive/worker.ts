@@ -6,6 +6,7 @@
 import wasmUrl from "./wasm-url";
 import { prepareZXingModule, readBarcodes } from "zxing-wasm/reader";
 import { extractColorPlanes } from "../shared/color-raster";
+import { sliceQuadrants } from "../shared/quadrant-slicer";
 
 prepareZXingModule({
   overrides: {
@@ -77,6 +78,32 @@ ctx.onmessage = async (e: MessageEvent) => {
         ctx.postMessage({ id, bytes: b });
       }
       return;
+    }
+
+    // 3. 2x2 Spatial Tiled Grid & Turbo Matrix decode attempt (4 to 12 frames per tick)
+    if (w >= 100 && h >= 100) {
+      const quads = sliceQuadrants(rawData, w, h);
+      const quadPromises = quads.map(async (q) => {
+        const qImg = new ImageData(q.buf, q.width, q.height);
+        const qSingle = await decodeImage(qImg);
+        if (qSingle) return [qSingle];
+
+        const qPlanes = extractColorPlanes(q.buf, q.width, q.height);
+        const [qr, qg, qb] = await Promise.all([
+          decodeImage(new ImageData(qPlanes.red, q.width, q.height)),
+          decodeImage(new ImageData(qPlanes.green, q.width, q.height)),
+          decodeImage(new ImageData(qPlanes.blue, q.width, q.height)),
+        ]);
+        return [qr, qg, qb].filter((x): x is Uint8Array => x !== null);
+      });
+
+      const quadResults = (await Promise.all(quadPromises)).flat();
+      if (quadResults.length > 0) {
+        for (const b of quadResults) {
+          ctx.postMessage({ id, bytes: b });
+        }
+        return;
+      }
     }
 
     ctx.postMessage({ id, bytes: null });

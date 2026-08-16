@@ -86,3 +86,33 @@ export function extractColorPlanes(
 
   return { red, green, blue, width, height };
 }
+
+/**
+ * Composites 4 square rasters (each with dimension subSize) into a 2x2 grid raster of size 2*subSize.
+ */
+export function composite2x2Grid(
+  q0: Uint32Array,
+  q1: Uint32Array,
+  q2: Uint32Array,
+  q3: Uint32Array,
+  subSize: number,
+): { size: number; pixels: Uint32Array<ArrayBuffer> } {
+  const fullSize = subSize * 2;
+  const pixels = new Uint32Array(fullSize * fullSize);
+
+  for (let y = 0; y < subSize; y++) {
+    const dstRowTop = y * fullSize;
+    const dstRowBot = (subSize + y) * fullSize;
+    const srcRow = y * subSize;
+
+    for (let x = 0; x < subSize; x++) {
+      pixels[dstRowTop + x] = q0[srcRow + x]!;
+      pixels[dstRowTop + subSize + x] = q1[srcRow + x]!;
+      pixels[dstRowBot + x] = q2[srcRow + x]!;
+      pixels[dstRowBot + subSize + x] = q3[srcRow + x]!;
+    }
+  }
+
+  return { size: fullSize, pixels };
+}
+

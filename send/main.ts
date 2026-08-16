@@ -15,7 +15,7 @@
 import QRCode from "qrcode";
 import { fitQrDisplaySize } from "../shared/display";
 import { rasterizeQr } from "../shared/qr-raster";
-import { rasterizeRgbQr } from "../shared/color-raster";
+import { composite2x2Grid, rasterizeRgbQr } from "../shared/color-raster";
 import { formatBytes } from "../shared/format";
 import {
   MAX_SOURCE_BLOCKS,
@@ -411,7 +411,79 @@ async function startStream(revealStage = false) {
   };
 
   const makeFrame = (): ImageData => {
-    if (streamMode === "rgb" || streamMode === "turbo") {
+    if (streamMode === "turbo") {
+      // 12x fountain frames per tick: 4 spatial quadrants × 3 RGB channels
+      const r0 = rasterizeRgbQr(modules || 21, makeSingleQr(nextSeq++).modules.data, makeSingleQr(nextSeq++).modules.data, makeSingleQr(nextSeq++).modules.data, MARGIN);
+      const r1 = rasterizeRgbQr(modules || 21, makeSingleQr(nextSeq++).modules.data, makeSingleQr(nextSeq++).modules.data, makeSingleQr(nextSeq++).modules.data, MARGIN);
+      const r2 = rasterizeRgbQr(modules || 21, makeSingleQr(nextSeq++).modules.data, makeSingleQr(nextSeq++).modules.data, makeSingleQr(nextSeq++).modules.data, MARGIN);
+      const r3 = rasterizeRgbQr(modules || 21, makeSingleQr(nextSeq++).modules.data, makeSingleQr(nextSeq++).modules.data, makeSingleQr(nextSeq++).modules.data, MARGIN);
+
+      if (version === undefined) {
+        const sampleQr = makeSingleQr(0);
+        version = sampleQr.version;
+        modules = sampleQr.modules.size;
+        sizeCanvas();
+        resizeDisplay = sizeCanvas;
+        if (revealStage) scrollStageIntoView();
+        spec("spec-fps").textContent = `${txFps} fps (Turbo 12x)`;
+        spec("spec-frame").textContent = `${frameBytes} bytes × 12`;
+        spec("spec-qr").textContent = `V${version} · Turbo RGB Matrix`;
+        spec("spec-payload").textContent = `${name} · ${formatBytes(fileSize)}`;
+        spec("spec-compression").textContent =
+          compression === "gzip" ? `gzip → ${formatBytes(transmittedSize)}` : "none";
+        spec("spec-k").textContent = `K = ${encoder.k}`;
+        showStreamPanels(true);
+        setStatus(`Streaming ${name} (Turbo Matrix 12x) — `);
+        const share = document.createElement("button");
+        share.type = "button";
+        share.className = "text-button";
+        share.textContent = "Share receiver link";
+        share.addEventListener("click", openShareDialog);
+        specs.append(share);
+      }
+      const grid = composite2x2Grid(r0.pixels, r1.pixels, r2.pixels, r3.pixels, r0.size);
+      return new ImageData(new Uint8ClampedArray(grid.pixels.buffer), grid.size, grid.size);
+    }
+
+    if (streamMode === "tiled") {
+      // 4x fountain frames per tick: 4 spatial quadrants in black & white
+      const qr0 = makeSingleQr(nextSeq++);
+      const qr1 = makeSingleQr(nextSeq++);
+      const qr2 = makeSingleQr(nextSeq++);
+      const qr3 = makeSingleQr(nextSeq++);
+
+      if (version === undefined) {
+        version = qr0.version;
+        modules = qr0.modules.size;
+        sizeCanvas();
+        resizeDisplay = sizeCanvas;
+        if (revealStage) scrollStageIntoView();
+        spec("spec-fps").textContent = `${txFps} fps (Tiled 4x)`;
+        spec("spec-frame").textContent = `${frameBytes} bytes × 4`;
+        spec("spec-qr").textContent = `V${version} · 2×2 Tiled Grid`;
+        spec("spec-payload").textContent = `${name} · ${formatBytes(fileSize)}`;
+        spec("spec-compression").textContent =
+          compression === "gzip" ? `gzip → ${formatBytes(transmittedSize)}` : "none";
+        spec("spec-k").textContent = `K = ${encoder.k}`;
+        showStreamPanels(true);
+        setStatus(`Streaming ${name} (2×2 Tiled 4x) — `);
+        const share = document.createElement("button");
+        share.type = "button";
+        share.className = "text-button";
+        share.textContent = "Share receiver link";
+        share.addEventListener("click", openShareDialog);
+        specs.append(share);
+      }
+      const r0 = rasterizeQr(qr0.modules.size, qr0.modules.data, MARGIN);
+      const r1 = rasterizeQr(qr1.modules.size, qr1.modules.data, MARGIN);
+      const r2 = rasterizeQr(qr2.modules.size, qr2.modules.data, MARGIN);
+      const r3 = rasterizeQr(qr3.modules.size, qr3.modules.data, MARGIN);
+
+      const grid = composite2x2Grid(r0.pixels, r1.pixels, r2.pixels, r3.pixels, r0.size);
+      return new ImageData(new Uint8ClampedArray(grid.pixels.buffer), grid.size, grid.size);
+    }
+
+    if (streamMode === "rgb") {
       const qrR = makeSingleQr(nextSeq++);
       const qrG = makeSingleQr(nextSeq++);
       const qrB = makeSingleQr(nextSeq++);

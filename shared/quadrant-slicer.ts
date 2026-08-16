@@ -5,7 +5,7 @@
 
 export interface QuadrantSlice {
   index: number; // 0: Top-Left, 1: Top-Right, 2: Bottom-Left, 3: Bottom-Right
-  buf: Uint8ClampedArray;
+  buf: Uint8ClampedArray<ArrayBuffer>;
   width: number;
   height: number;
 }
@@ -22,10 +22,10 @@ export function sliceQuadrants(
   const halfH = Math.floor(srcHeight / 2);
   const quadPixels = halfW * halfH;
 
-  const q0 = new Uint8ClampedArray(quadPixels * 4); // Top-Left
-  const q1 = new Uint8ClampedArray(quadPixels * 4); // Top-Right
-  const q2 = new Uint8ClampedArray(quadPixels * 4); // Bottom-Left
-  const q3 = new Uint8ClampedArray(quadPixels * 4); // Bottom-Right
+  const q0 = new Uint8ClampedArray(new ArrayBuffer(quadPixels * 4)); // Top-Left
+  const q1 = new Uint8ClampedArray(new ArrayBuffer(quadPixels * 4)); // Top-Right
+  const q2 = new Uint8ClampedArray(new ArrayBuffer(quadPixels * 4)); // Bottom-Left
+  const q3 = new Uint8ClampedArray(new ArrayBuffer(quadPixels * 4)); // Bottom-Right
 
   const q0_32 = new Uint32Array(q0.buffer);
   const q1_32 = new Uint32Array(q1.buffer);
