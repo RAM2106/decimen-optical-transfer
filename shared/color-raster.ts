@@ -72,13 +72,35 @@ export function extractColorPlanes(
   const green32 = new Uint32Array(green.buffer);
   const blue32 = new Uint32Array(blue.buffer);
 
-  for (let i = 0; i < totalPixels; i++) {
-    const srcOffset = i * 4;
-    const r = rgbaBuffer[srcOffset + 0]!;
-    const g = rgbaBuffer[srcOffset + 1]!;
-    const b = rgbaBuffer[srcOffset + 2]!;
+  // 1. Measure dynamic range (min & max) for each channel to eliminate camera glare & color cross-talk
+  let minR = 255, maxR = 0;
+  let minG = 255, maxG = 0;
+  let minB = 255, maxB = 0;
 
-    // Duplicate channel across R, G, B with Alpha=255
+  for (let i = 0; i < totalPixels; i++) {
+    const src = i * 4;
+    const r = rgbaBuffer[src + 0]!;
+    const g = rgbaBuffer[src + 1]!;
+    const b = rgbaBuffer[src + 2]!;
+    if (r < minR) minR = r;
+    if (r > maxR) maxR = r;
+    if (g < minG) minG = g;
+    if (g > maxG) maxG = g;
+    if (b < minB) minB = b;
+    if (b > maxB) maxB = b;
+  }
+
+  const rangeR = maxR > minR ? maxR - minR : 1;
+  const rangeG = maxG > minG ? maxG - minG : 1;
+  const rangeB = maxB > minB ? maxB - minB : 1;
+
+  // 2. Normalize and stretch contrast to full dynamic range (0..255)
+  for (let i = 0; i < totalPixels; i++) {
+    const src = i * 4;
+    const r = maxR > minR ? Math.min(255, Math.max(0, Math.round(((rgbaBuffer[src + 0]! - minR) / rangeR) * 255))) : rgbaBuffer[src + 0]!;
+    const g = maxG > minG ? Math.min(255, Math.max(0, Math.round(((rgbaBuffer[src + 1]! - minG) / rangeG) * 255))) : rgbaBuffer[src + 1]!;
+    const b = maxB > minB ? Math.min(255, Math.max(0, Math.round(((rgbaBuffer[src + 2]! - minB) / rangeB) * 255))) : rgbaBuffer[src + 2]!;
+
     red32[i] = (0xff << 24) | (r << 16) | (r << 8) | r;
     green32[i] = (0xff << 24) | (g << 16) | (g << 8) | g;
     blue32[i] = (0xff << 24) | (b << 16) | (b << 8) | b;

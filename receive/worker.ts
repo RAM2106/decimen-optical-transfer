@@ -53,35 +53,32 @@ ctx.onmessage = async (e: MessageEvent) => {
     const rawData = new Uint8ClampedArray(buf);
     const img = new ImageData(rawData, w, h);
 
+    const results: Uint8Array[] = [];
+
     // 1. Standard single frame decode attempt
     const single = await decodeImage(img);
-    if (single) {
-      ctx.postMessage({ id, bytes: single });
-      return;
-    }
+    if (single) results.push(single);
 
     // 2. High-speed RGB Color Modulated stream decode attempt (3 simultaneous channels)
-    const planes = extractColorPlanes(rawData, w, h);
-    const imgR = new ImageData(planes.red, w, h);
-    const imgG = new ImageData(planes.green, w, h);
-    const imgB = new ImageData(planes.blue, w, h);
+    if (results.length === 0) {
+      const planes = extractColorPlanes(rawData, w, h);
+      const imgR = new ImageData(planes.red, w, h);
+      const imgG = new ImageData(planes.green, w, h);
+      const imgB = new ImageData(planes.blue, w, h);
 
-    const [bytesR, bytesG, bytesB] = await Promise.all([
-      decodeImage(imgR),
-      decodeImage(imgG),
-      decodeImage(imgB),
-    ]);
+      const [bytesR, bytesG, bytesB] = await Promise.all([
+        decodeImage(imgR),
+        decodeImage(imgG),
+        decodeImage(imgB),
+      ]);
 
-    const decodedList = [bytesR, bytesG, bytesB].filter((b): b is Uint8Array => b !== null);
-    if (decodedList.length > 0) {
-      for (const b of decodedList) {
-        ctx.postMessage({ id, bytes: b });
-      }
-      return;
+      if (bytesR) results.push(bytesR);
+      if (bytesG) results.push(bytesG);
+      if (bytesB) results.push(bytesB);
     }
 
     // 3. 2x2 Spatial Tiled Grid & Turbo Matrix decode attempt (4 to 12 frames per tick)
-    if (w >= 100 && h >= 100) {
+    if (results.length === 0 && w >= 100 && h >= 100) {
       const quads = sliceQuadrants(rawData, w, h);
       const quadPromises = quads.map(async (q) => {
         const qImg = new ImageData(q.buf, q.width, q.height);
@@ -98,17 +95,12 @@ ctx.onmessage = async (e: MessageEvent) => {
       });
 
       const quadResults = (await Promise.all(quadPromises)).flat();
-      if (quadResults.length > 0) {
-        for (const b of quadResults) {
-          ctx.postMessage({ id, bytes: b });
-        }
-        return;
-      }
+      results.push(...quadResults);
     }
 
-    ctx.postMessage({ id, bytes: null });
+    ctx.postMessage({ id, results, bytes: results[0] ?? null });
   } catch {
-    ctx.postMessage({ id, bytes: null });
+    ctx.postMessage({ id, results: [], bytes: null });
   }
 };
 
