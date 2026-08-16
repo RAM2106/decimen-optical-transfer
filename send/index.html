@@ -61,6 +61,15 @@
         <summary>Transfer settings</summary>
         <div class="row">
           <label>
+            stream mode
+            <select id="cfg-mode">
+              <option value="standard" selected>Standard (1x B&amp;W)</option>
+              <option value="rgb">RGB Color (3x · 450 KB/s)</option>
+              <option value="tiled">2×2 Tiled Grid (4x · 650 KB/s)</option>
+              <option value="turbo">Turbo Matrix (12x · 1.5–2.5 MB/s)</option>
+            </select>
+          </label>
+          <label>
             tx fps
             <!-- Options come from shared/send-settings.ts via htmlTokens() -->
             <select id="cfg-fps">%TX_FPS_OPTIONS%</select>

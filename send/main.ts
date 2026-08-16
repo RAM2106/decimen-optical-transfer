@@ -15,6 +15,7 @@
 import QRCode from "qrcode";
 import { fitQrDisplaySize } from "../shared/display";
 import { rasterizeQr } from "../shared/qr-raster";
+import { rasterizeRgbQr } from "../shared/color-raster";
 import { formatBytes } from "../shared/format";
 import {
   MAX_SOURCE_BLOCKS,
@@ -78,6 +79,7 @@ const cfgFps = document.getElementById("cfg-fps") as HTMLSelectElement;
 const cfgBytes = document.getElementById("cfg-bytes") as HTMLSelectElement;
 const cfgEcc = document.getElementById("cfg-ecc") as HTMLSelectElement;
 const cfgSize = document.getElementById("cfg-size") as HTMLInputElement;
+const cfgMode = document.getElementById("cfg-mode") as HTMLSelectElement | null;
 
 let selectedFile: {
   name: string;
@@ -293,8 +295,8 @@ async function main() {
   }
   applyMode();
   window.addEventListener("resize", () => resizeDisplay?.());
-  for (const el of [cfgFps, cfgBytes, cfgEcc, cfgSize]) {
-    el.addEventListener("change", () => void startStream());
+  for (const el of [cfgFps, cfgBytes, cfgEcc, cfgSize, cfgMode].filter(Boolean)) {
+    el!.addEventListener("change", () => void startStream());
   }
   await requestScreenWakeLock();
 }
@@ -397,24 +399,61 @@ async function startStream(revealStage = false) {
     canvas.style.height = `${(total * scale) / dpr}px`;
   };
 
-  const makeFrame = (): ImageData => {
-    const bytes = packFrame({ ...header, seq: nextSeq }, encoder.encode(nextSeq));
-    nextSeq++;
-    const qr = QRCode.create([{ data: bytes, mode: "byte" } as unknown as QRCode.QRCodeSegment], {
+  const streamMode = cfgMode?.value || "standard";
+
+  const makeSingleQr = (seq: number) => {
+    const bytes = packFrame({ ...header, seq }, encoder.encode(seq));
+    return QRCode.create([{ data: bytes, mode: "byte" } as unknown as QRCode.QRCodeSegment], {
       errorCorrectionLevel: ecc,
       version,
       maskPattern: 4,
     });
+  };
+
+  const makeFrame = (): ImageData => {
+    if (streamMode === "rgb" || streamMode === "turbo") {
+      const qrR = makeSingleQr(nextSeq++);
+      const qrG = makeSingleQr(nextSeq++);
+      const qrB = makeSingleQr(nextSeq++);
+      if (version === undefined) {
+        version = qrR.version;
+        modules = qrR.modules.size;
+        sizeCanvas();
+        resizeDisplay = sizeCanvas;
+        if (revealStage) scrollStageIntoView();
+        spec("spec-fps").textContent = `${txFps} fps (RGB 3x)`;
+        spec("spec-frame").textContent = `${frameBytes} bytes × 3`;
+        spec("spec-qr").textContent = `V${version} · ECC ${ecc} · RGB Color`;
+        spec("spec-payload").textContent = `${name} · ${formatBytes(fileSize)}`;
+        spec("spec-compression").textContent =
+          compression === "gzip" ? `gzip → ${formatBytes(transmittedSize)}` : "none";
+        spec("spec-k").textContent = `K = ${encoder.k}`;
+        showStreamPanels(true);
+        setStatus(`Streaming ${name} (RGB Color 3x) — `);
+        const share = document.createElement("button");
+        share.type = "button";
+        share.className = "text-button";
+        share.textContent = "Share receiver link";
+        share.addEventListener("click", openShareDialog);
+        specs.append(share);
+      }
+      const raster = rasterizeRgbQr(
+        qrR.modules.size,
+        qrR.modules.data,
+        qrG.modules.data,
+        qrB.modules.data,
+        MARGIN
+      );
+      return new ImageData(new Uint8ClampedArray(raster.pixels.buffer), raster.size, raster.size);
+    }
+
+    const qr = makeSingleQr(nextSeq++);
     if (version === undefined) {
       version = qr.version;
       modules = qr.modules.size;
       sizeCanvas();
       resizeDisplay = sizeCanvas;
-      // Scroll only now: before sizeCanvas() the canvas is still 16×16, so the
-      // scroll target would be the wrong height.
       if (revealStage) scrollStageIntoView();
-      // The stream's parameters live at the bottom of Transfer settings, next
-      // to the knobs that produced them; the status line stays for prose.
       spec("spec-fps").textContent = `${txFps} fps`;
       spec("spec-frame").textContent = `${frameBytes} bytes`;
       spec("spec-qr").textContent = `V${version} · ECC ${ecc}`;
@@ -423,9 +462,6 @@ async function startStream(revealStage = false) {
         compression === "gzip" ? `gzip → ${formatBytes(transmittedSize)}` : "none";
       spec("spec-k").textContent = `K = ${encoder.k}`;
       showStreamPanels(true);
-      // The tail of the status line is the door to the share dialog. Built by
-      // hand because setStatus is textContent-only — and the next setStatus
-      // wiping the button out is exactly right.
       setStatus(`Streaming ${name} — `);
       const share = document.createElement("button");
       share.type = "button";
