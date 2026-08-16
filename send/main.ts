@@ -327,7 +327,7 @@ async function startStream(revealStage = false) {
   const frameBytes = Number(cfgBytes.value);
   const ecc = cfgEcc.value as "L" | "M" | "Q" | "H";
   const displayPx = Number(cfgSize.value);
-  const streamMode = cfgMode?.value || "rgb";
+  const streamMode = cfgMode?.value || "standard";
 
   const sessionId = (Math.floor(Math.random() * 0xffff) + 1) & 0xffff;
   const blockLen = blockLength(frameBytes);
